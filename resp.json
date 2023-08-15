@@ -1,0 +1,11 @@
+{
+    "data": {
+        "__type": {
+            "name": "String",
+            "kind": "SCALAR",
+            "fields": [],
+            "enumValues": [],
+            "inputFields": []
+        }
+    }
+}
