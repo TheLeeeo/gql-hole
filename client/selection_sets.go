@@ -28,7 +28,7 @@ func (c *Client) CompileType(t *models.Type) []string {
 		case models.ScalarTypeKind:
 			fieldNames = append(fieldNames, f.Name)
 		case models.ObjectTypeKind:
-			fullBaseType := c.GetType(baseType.Name)
+			fullBaseType := c.GetObjectType(baseType.Name)
 
 			fieldNames = append(fieldNames, fmt.Sprintf("%s {", f.Name))
 			fieldNames = append(fieldNames, c.CompileType(fullBaseType)...)
@@ -53,7 +53,7 @@ func (c *Client) CompileField(f *models.Field) string {
 	if baseType.Kind == models.ScalarTypeKind {
 		queryBody = ""
 	} else if baseType.Kind == models.ObjectTypeKind {
-		completeBaseType := c.GetType(baseType.Name)
+		completeBaseType := c.GetObjectType(baseType.Name)
 		compiledTypeList := c.CompileType(completeBaseType)
 
 		var fields string

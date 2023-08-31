@@ -6,9 +6,9 @@ import "fmt"
 
 type Schema struct {
 	// Description      string      `json:"description"`
-	Types        []Type `json:"types"`
-	QueryType    *Type  `json:"queryType"`
-	MutationType *Type  `json:"mutationType"`
+	Types        []*Type `json:"types"`
+	QueryType    *Type   `json:"queryType"`
+	MutationType *Type   `json:"mutationType"`
 	// SubscriptionType Type        `json:"subscriptionType"`
 	// Directives       []Directive `json:"directives"`
 }

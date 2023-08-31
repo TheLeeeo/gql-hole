@@ -27,11 +27,11 @@ func ParseResponse(resp []byte) (*models.Response, error) {
 func ParseMap[T any](m map[string]any, v T) error {
 	b, err := json.Marshal(m)
 	if err != nil {
-		return fmt.Errorf("Error marshaling map: %s", err.Error())
+		return fmt.Errorf("error marshaling map: %s", err.Error())
 	}
 	err = json.Unmarshal(b, &v)
 	if err != nil {
-		return fmt.Errorf("Error unmarshaling map: %s", err.Error())
+		return fmt.Errorf("error unmarshaling map: %s", err.Error())
 	}
 
 	return nil

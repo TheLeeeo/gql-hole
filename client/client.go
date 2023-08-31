@@ -12,7 +12,7 @@ import (
 	"github.com/TheLeeeo/gql-test-suite/utils"
 )
 
-// The number of extra levels of nesting to add to the recursive type field
+// The levels of type nesting to begin fetching
 const defaultTypeDepth = 4
 
 // Builds the recursive "ofType" field for the type introspection query
@@ -48,11 +48,11 @@ func New(addr string) *Client {
 }
 
 // Gets the type from the client
-func (c *Client) GetType(name string) *models.Type {
+func (c *Client) GetObjectType(name string) *models.Type {
 	t, ok := c.ObjectTypes[name]
 	if !ok {
 		// fmt.Printf("type (%s) not found in client, fetching\n", name)
-		err := c.FetchType(name)
+		err := c.OldFetchType(name)
 		if err != nil {
 			panic(fmt.Sprintf("error fetching type %s: %v", name, err))
 		}
@@ -68,7 +68,7 @@ func (c *Client) GetInputType(name string) *models.Type {
 	t, ok := c.InputTypes[name]
 	if !ok {
 		// fmt.Printf("type (%s) not found in client, fetching\n", name)
-		err := c.FetchType(name)
+		err := c.OldFetchType(name)
 		if err != nil {
 			panic(fmt.Sprintf("error fetching type %s: %v", name, err))
 		}
@@ -84,7 +84,7 @@ func (c *Client) GetEnumType(name string) *models.Type {
 	t, ok := c.EnumTypes[name]
 	if !ok {
 		// fmt.Printf("type (%s) not found in client, fetching\n", name)
-		err := c.FetchType(name)
+		err := c.OldFetchType(name)
 		if err != nil {
 			panic(fmt.Sprintf("error fetching type %s: %v", name, err))
 		}
@@ -99,12 +99,26 @@ func (c *Client) GetUnionType(name string) *models.Type {
 	t, ok := c.Unions[name]
 	if !ok {
 		// fmt.Printf("type (%s) not found in client, fetching\n", name)
-		err := c.FetchType(name)
+		err := c.OldFetchType(name)
 		if err != nil {
 			panic(fmt.Sprintf("error fetching type %s: %v", name, err))
 		}
 
 		t = c.Unions[name]
+	}
+
+	return t
+}
+
+func (c *Client) GetType(name string) *models.Type {
+	t, ok := c.Types[name]
+	if !ok {
+		// Type not found in client, fetching
+		t, err := c.FetchType(name)
+		if err != nil {
+			log.Printf("error fetching type %s: %v", name, err)
+		}
+		return t
 	}
 
 	return t
@@ -138,8 +152,21 @@ func (c *Client) Execute(request []byte) ([]byte, error) {
 	return responseBody, nil
 }
 
+func (c *Client) FetchType(typeName string) (*models.Type, error) {
+	if typeName == "_Service" || typeName == "_Any" || typeName == "_FieldSet" {
+		return nil, fmt.Errorf("type %s is not supported, skipping", typeName)
+	}
+
+	t, err := c.fetchTypeInternal(typeName, defaultTypeDepth)
+	if err != nil {
+		return nil, err
+	}
+
+	return t, nil
+}
+
 // Fethes the type specified by typeName and saves it to the client
-func (c *Client) FetchType(typeName string) error {
+func (c *Client) OldFetchType(typeName string) error {
 	if _, ok := c.ObjectTypes[typeName]; ok { //TODO Handle input, enum and union types
 		// fmt.Printf("type %s already fetched, skipping\n", typeName)
 		return nil
@@ -258,14 +285,14 @@ func isCompleteField(f *models.Field) bool {
 }
 
 // Fetches all the types in the schema and adds them to the client
-func (c *Client) FetchSchema() error {
+func (c *Client) OldFetchSchema() error {
 	typeNames, err := c.fetchTypeNames()
 	if err != nil {
 		return fmt.Errorf("error fetching type names: %v", err)
 	}
 
 	for _, typeName := range typeNames {
-		err = c.FetchType(typeName)
+		err = c.OldFetchType(typeName)
 		if err != nil {
 			return fmt.Errorf("error fetching type %s: %v", typeName, err)
 		}
@@ -274,7 +301,7 @@ func (c *Client) FetchSchema() error {
 	return nil
 }
 
-func (c *Client) NewFetchSchema() error {
+func (c *Client) LoadSchema() error {
 	q := fmt.Sprintf(schemaIntrospectionQuery, buildRecursiveOfTypeField(defaultTypeDepth))
 	req := request.BuildFromString(q, nil)
 	resp, err := c.Execute([]byte(req))
@@ -295,48 +322,43 @@ func (c *Client) NewFetchSchema() error {
 	}
 
 	for _, t := range sch.Types {
-		if !isCompleteType(&t) {
-			fmt.Println("Incomplete type: ", t.Name)
+		if isCompleteType(t) {
+			c.Types[t.Name] = t
+		} else {
+			t, err := c.FetchType(t.Name)
+			if err != nil {
+				return fmt.Errorf("error fetching type %s: %v", t.Name, err)
+			}
+			c.Types[t.Name] = t
 		}
-		fmt.Println("Fetched type: ", t.Name)
+	}
+
+	queries, ok := c.Types["Query"]
+	if !ok || len(queries.Fields) == 0 {
+		log.Println("Schema does not contain any queries")
+	} else {
+		for _, f := range queries.Fields {
+			f := f
+			c.Queries = append(c.Queries, &f)
+		}
+	}
+
+	mutations, ok := c.Types["Mutation"]
+	if !ok || len(mutations.Fields) == 0 {
+		log.Println("Schema does not contain any mutations")
+	} else {
+		for _, f := range mutations.Fields {
+			f := f
+			c.Mutations = append(c.Mutations, &f)
+		}
+	}
+
+	_, ok = c.Types["Subscription"]
+	if ok {
+		log.Println("Schema contains subscriptions, these are not supported")
 	}
 
 	return nil
-}
-
-// The queries have incomplete types consisting of only the name
-// Replace the types with their complete variants
-func (c *Client) populateTypesInQueries() {
-	for _, q := range c.Queries {
-		c.populateBaseType(q.Type)
-	}
-
-	for _, m := range c.Mutations {
-		c.populateBaseType(m.Type)
-	}
-}
-
-func (c *Client) populateBaseType(t *models.Type) {
-	baseType := t.GetBaseType()
-
-	if baseType.Kind == models.ScalarTypeKind {
-		return
-	}
-
-	if baseType.Kind == models.ObjectTypeKind {
-		*baseType = *c.GetType(baseType.Name)
-	} else if baseType.Kind == models.InputObjectTypeKind {
-		*baseType = *c.GetInputType(baseType.Name)
-	} else if baseType.Kind == models.EnumTypeKind {
-		*baseType = *c.GetEnumType(baseType.Name)
-	} else if baseType.Kind == models.UnionTypeKind {
-		*baseType = *c.GetUnionType(baseType.Name)
-		for _, pt := range baseType.PossibleTypes {
-			c.populateBaseType(&pt)
-		}
-	} else {
-		panic(fmt.Sprintf("Unimplemented base type kind %s", baseType.Kind))
-	}
 }
 
 // Fetches the names of all of the types in the schema

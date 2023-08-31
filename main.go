@@ -13,7 +13,13 @@ import (
 	"github.com/TheLeeeo/gql-test-suite/request"
 	"github.com/TheLeeeo/gql-test-suite/utils"
 	"github.com/fatih/color"
+	"golang.org/x/exp/slices"
 )
+
+var UnsupportedQueries = []string{
+	"_entities",
+	"_service",
+}
 
 var addr = "http://localhost:4010/gql"
 
@@ -21,10 +27,9 @@ var addr = "http://localhost:4010/gql"
 
 func main() {
 	log.SetOutput(os.Stderr)
-	log.SetFlags(0)
 
 	cl := client.New(addr)
-	err := cl.FetchSchema()
+	err := cl.LoadSchema()
 	if err != nil {
 		log.Println("Error: ", err)
 		os.Exit(1)
@@ -36,9 +41,10 @@ func main() {
 func testAllQueries(cl *client.Client) {
 	var allowedRequests []string
 	for _, q := range cl.Queries {
-		if q.Name == "_entities" {
+		if slices.Contains(UnsupportedQueries, q.Name) {
 			continue
 		}
+
 		vars := GenerateMinimalTestData(cl, q)
 		r := cl.Build(q, vars, request.Query)
 		resp, err := cl.Execute([]byte(r))
