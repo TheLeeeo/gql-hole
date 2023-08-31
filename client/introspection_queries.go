@@ -6,6 +6,7 @@ const typeIntrospectionQuery = `
 query TypeQuery{
     __type(name: "%s"){
 		...FullType
+    }
 }
 
 fragment FullType on __Type {
@@ -59,7 +60,8 @@ fragment TypeRef on __Type {
 // The %s will be replaced with the recursiveOfTypeField
 const schemaIntrospectionQuery = `
 query IntrospectionQuery {
-    __schema {    
+    __schema {
+        description
         queryType { name }
         mutationType { name }
         subscriptionType { name }

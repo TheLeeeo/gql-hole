@@ -82,10 +82,6 @@ func (c *Client) Execute(request []byte) ([]byte, error) {
 }
 
 func (c *Client) FetchType(typeName string) (*models.Type, error) {
-	if typeName == "_Service" || typeName == "_Any" || typeName == "_FieldSet" {
-		return nil, fmt.Errorf("type %s is not supported, skipping", typeName)
-	}
-
 	t, err := c.fetchTypeInternal(typeName, defaultTypeDepth)
 	if err != nil {
 		return nil, err
