@@ -2,8 +2,8 @@ package client
 
 // For fetching a type
 const typeIntrospectionQuery = `
-query ($name: String!){
-    __type(name: $name){
+query TypeQuery{
+    __type(name: "%s"){
 		name
 		kind
 		fields {

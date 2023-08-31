@@ -1,9 +1,5 @@
 package models
 
-import (
-	"fmt"
-)
-
 type Type struct {
 	Kind           TypeKind     `json:"kind"`
 	Name           string       `json:"name"`
@@ -45,30 +41,30 @@ func (t *Type) GetBaseType() *Type {
 	return t.OfType.GetBaseType()
 }
 
-// CompileFields builds a partial query for the fields of a type and returns the lines of the query
-func (t *Type) CompileFields() []string {
-	if t.Kind == ListTypeKind || t.Kind == NonNullTypeKind {
-		return []string{} //Temporary behavior
-	}
+// // CompileFields builds a partial query for the fields of a type and returns the lines of the query
+// func (t *Type) CompileFields() []string {
+// 	if t.Kind == ListTypeKind || t.Kind == NonNullTypeKind {
+// 		return []string{} //Temporary behavior
+// 	}
 
-	var fieldNames []string
+// 	var fieldNames []string
 
-	for _, f := range t.Fields {
-		baseType := f.Type.GetBaseType()
+// 	for _, f := range t.Fields {
+// 		baseType := f.Type.GetBaseType()
 
-		switch baseType.Kind {
-		case EnumTypeKind:
-			fieldNames = append(fieldNames, f.Name)
-		case ScalarTypeKind:
-			fieldNames = append(fieldNames, f.Name)
-		case ObjectTypeKind:
-			fieldNames = append(fieldNames, fmt.Sprintf("%s {", f.Name))
-			fieldNames = append(fieldNames, baseType.CompileFields()...)
-			fieldNames = append(fieldNames, "}")
-		default:
-			fmt.Printf("Unhandled type %s in type %s\n", baseType.Kind, f.Name)
-		}
-	}
+// 		switch baseType.Kind {
+// 		case EnumTypeKind:
+// 			fieldNames = append(fieldNames, f.Name)
+// 		case ScalarTypeKind:
+// 			fieldNames = append(fieldNames, f.Name)
+// 		case ObjectTypeKind:
+// 			fieldNames = append(fieldNames, fmt.Sprintf("%s {", f.Name))
+// 			fieldNames = append(fieldNames, baseType.CompileFields()...)
+// 			fieldNames = append(fieldNames, "}")
+// 		default:
+// 			fmt.Printf("Unhandled type %s in type %s\n", baseType.Kind, f.Name)
+// 		}
+// 	}
 
-	return fieldNames
-}
+// 	return fieldNames
+// }

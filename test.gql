@@ -1,0 +1,6 @@
+query{
+    __type(name: "Disruption"){
+        name
+        kind
+    }
+}

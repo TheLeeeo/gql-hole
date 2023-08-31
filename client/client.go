@@ -13,7 +13,7 @@ import (
 )
 
 // The number of extra levels of nesting to add to the recursive type field
-const defaultTypeDepth = 2
+const defaultTypeDepth = 4
 
 // Builds the recursive "ofType" field for the type introspection query
 // Used to fetch the entire type tree
@@ -93,6 +93,21 @@ func (c *Client) GetEnumValues(name string) []models.EnumValue {
 	return t
 }
 
+func (c *Client) GetUnionType(name string) *models.Type {
+	t, ok := c.Unions[name]
+	if !ok {
+		// fmt.Printf("type (%s) not found in client, fetching\n", name)
+		err := c.FetchType(name)
+		if err != nil {
+			panic(fmt.Sprintf("error fetching type %s: %v", name, err))
+		}
+
+		t = c.Unions[name]
+	}
+
+	return t
+}
+
 // Executes the graphql request and returns the response
 func (c *Client) Execute(request []byte) ([]byte, error) {
 	requestBody := bytes.NewBuffer(request)
@@ -103,6 +118,7 @@ func (c *Client) Execute(request []byte) ([]byte, error) {
 
 	}
 	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("token", "test")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -147,11 +163,6 @@ func (c *Client) FetchType(typeName string) error {
 			}
 
 			c.Queries = append(c.Queries, &f)
-
-			c.populateBaseType(f.Type)
-			if len(f.Args) > 0 {
-				c.populateBaseType(f.Args[0].Type)
-			}
 		}
 		return nil
 	}
@@ -160,42 +171,18 @@ func (c *Client) FetchType(typeName string) error {
 		for _, f := range t.Fields {
 			f := f
 			c.Mutations = append(c.Mutations, &f)
-
-			c.populateBaseType(f.Type)
-			if len(f.Args) > 0 {
-				c.populateBaseType(f.Args[0].Type)
-			}
 		}
 		return nil
 	}
 
 	switch t.Kind {
 	case models.ObjectTypeKind:
-		for _, f := range t.Fields {
-			if f.Type.GetBaseType().Kind == models.ObjectTypeKind {
-				c.populateBaseType(f.Type)
-			} else if f.Type.GetBaseType().Kind == models.EnumTypeKind {
-				c.populateBaseType(f.Type)
-			}
-		}
-
 		c.Types[typeName] = t
 	case models.InputObjectTypeKind:
-		for _, f := range t.InputFields {
-			if f.Type.GetBaseType().Kind == models.ObjectTypeKind {
-				c.populateBaseType(f.Type)
-			}
-		}
-
 		c.InputTypes[typeName] = t
 	case models.EnumTypeKind:
 		c.EnumTypes[typeName] = t.EnumValues
 	case models.UnionTypeKind:
-		for _, pt := range t.PossibleTypes {
-			c.populateBaseType(&pt)
-			_ = pt
-		}
-
 		c.Unions[t.Name] = t
 	}
 
@@ -204,19 +191,14 @@ func (c *Client) FetchType(typeName string) error {
 
 // The internal function for fetching a type. Deals with incomplete types
 func (c *Client) fetchTypeInternal(typeName string, typeDepth int) (*models.Type, error) {
-	variables := make(map[string]any)
-	variables["name"] = typeName
-
 	ofTypeField := buildRecursiveOfTypeField(typeDepth)
-	reqString := fmt.Sprintf(typeIntrospectionQuery, ofTypeField, ofTypeField, ofTypeField, ofTypeField, ofTypeField)
+	reqString := fmt.Sprintf(typeIntrospectionQuery, typeName, ofTypeField, ofTypeField, ofTypeField, ofTypeField, ofTypeField)
 
-	q := request.BuildFromString(reqString, variables)
+	q := request.BuildFromString(reqString, nil)
 	resp, err := c.Execute([]byte(q))
 	if err != nil {
 		return nil, err
 	}
-
-	// utils.SaveToFile("resp.json", resp) //debug
 
 	respType, err := utils.ParseResponse(resp)
 	if err != nil {
@@ -234,8 +216,6 @@ func (c *Client) fetchTypeInternal(typeName string, typeDepth int) (*models.Type
 		return t, nil
 	}
 
-	// color.Red("type %s is incomplete", typeName)
-
 	if typeDepth == 0 {
 		typeDepth = 1
 	}
@@ -243,7 +223,8 @@ func (c *Client) fetchTypeInternal(typeName string, typeDepth int) (*models.Type
 	return c.fetchTypeInternal(typeName, typeDepth*2)
 }
 
-// Checks if a type is comleted
+// Checks if a type is comleted.
+// It is considered complete if it knows the base typ of all of its fields
 func isCompleteType(t *models.Type) bool { //TODO: check inputFIelds and args
 	baseType := t.GetBaseType()
 	if baseType.Kind == models.NonNullTypeKind || baseType.Kind == models.ListTypeKind {
@@ -288,8 +269,6 @@ func (c *Client) FetchSchema() error {
 		}
 	}
 
-	// c.populateTypesInQueries()
-
 	return nil
 }
 
@@ -298,8 +277,6 @@ func (c *Client) FetchSchema() error {
 func (c *Client) populateTypesInQueries() {
 	for _, q := range c.Queries {
 		c.populateBaseType(q.Type)
-		// fmt.Printf("%+v\n", q.Type.OfType.OfType)
-
 	}
 
 	for _, m := range c.Mutations {
@@ -321,7 +298,7 @@ func (c *Client) populateBaseType(t *models.Type) {
 	} else if baseType.Kind == models.EnumTypeKind {
 		baseType.EnumValues = c.GetEnumValues(baseType.Name)
 	} else if baseType.Kind == models.UnionTypeKind {
-		*baseType = *c.Unions[baseType.Name] //TODO GetUnionType()
+		*baseType = *c.GetUnionType(baseType.Name)
 		for _, pt := range baseType.PossibleTypes {
 			c.populateBaseType(&pt)
 		}
@@ -356,4 +333,30 @@ func (c *Client) fetchTypeNames() ([]string, error) {
 	}
 
 	return names, nil
+}
+
+func (c *Client) ExecuteFile(filename string) (string, error) {
+	q := utils.LoadQuery(filename)
+	req := request.BuildFromString(q, nil)
+	resp, err := c.Execute([]byte(req))
+	if err != nil {
+		return "", fmt.Errorf("error executing request: %v", err)
+	}
+
+	return string(resp), nil
+}
+
+func (c *Client) Build(requestField *models.Field, variables map[string]any, t request.RequestType) string {
+	if t != request.Query && t != request.Mutation {
+		panic(fmt.Sprintf("invalid request type: %s", t))
+	}
+
+	var input string
+	if len(requestField.Args) > 0 {
+		input = fmt.Sprintf(" (%s)", requestField.Args[0].Compile())
+	}
+
+	requestString := fmt.Sprintf("%s%s{\n%s\n}", t, input, c.CompileField(requestField))
+
+	return string(request.BuildFromString(requestString, variables))
 }
