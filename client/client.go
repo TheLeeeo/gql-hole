@@ -26,28 +26,30 @@ func buildRecursiveOfTypeField(depth int) string {
 }
 
 type Client struct {
-	Addr       string
-	Types      map[string]*models.Type
-	InputTypes map[string]*models.Type
-	EnumTypes  map[string][]models.EnumValue
-	Unions     map[string]*models.Type
-	Queries    []*models.Field
-	Mutations  []*models.Field
+	Addr        string
+	Types       map[string]*models.Type
+	ObjectTypes map[string]*models.Type
+	InputTypes  map[string]*models.Type
+	EnumTypes   map[string]*models.Type
+	Unions      map[string]*models.Type
+	Queries     []*models.Field
+	Mutations   []*models.Field
 }
 
 func New(addr string) *Client {
 	return &Client{
-		Addr:       addr,
-		Types:      make(map[string]*models.Type),
-		InputTypes: make(map[string]*models.Type),
-		EnumTypes:  make(map[string][]models.EnumValue),
-		Unions:     make(map[string]*models.Type),
+		Addr:        addr,
+		Types:       make(map[string]*models.Type),
+		ObjectTypes: make(map[string]*models.Type),
+		InputTypes:  make(map[string]*models.Type),
+		EnumTypes:   make(map[string]*models.Type),
+		Unions:      make(map[string]*models.Type),
 	}
 }
 
 // Gets the type from the client
 func (c *Client) GetType(name string) *models.Type {
-	t, ok := c.Types[name]
+	t, ok := c.ObjectTypes[name]
 	if !ok {
 		// fmt.Printf("type (%s) not found in client, fetching\n", name)
 		err := c.FetchType(name)
@@ -55,7 +57,7 @@ func (c *Client) GetType(name string) *models.Type {
 			panic(fmt.Sprintf("error fetching type %s: %v", name, err))
 		}
 
-		t = c.Types[name]
+		t = c.ObjectTypes[name]
 	}
 
 	return t
@@ -78,7 +80,7 @@ func (c *Client) GetInputType(name string) *models.Type {
 }
 
 // Gets the enumvalues from the client
-func (c *Client) GetEnumValues(name string) []models.EnumValue {
+func (c *Client) GetEnumType(name string) *models.Type {
 	t, ok := c.EnumTypes[name]
 	if !ok {
 		// fmt.Printf("type (%s) not found in client, fetching\n", name)
@@ -138,7 +140,7 @@ func (c *Client) Execute(request []byte) ([]byte, error) {
 
 // Fethes the type specified by typeName and saves it to the client
 func (c *Client) FetchType(typeName string) error {
-	if _, ok := c.Types[typeName]; ok { //TODO Handle input, enum and union types
+	if _, ok := c.ObjectTypes[typeName]; ok { //TODO Handle input, enum and union types
 		// fmt.Printf("type %s already fetched, skipping\n", typeName)
 		return nil
 	}
@@ -177,11 +179,11 @@ func (c *Client) FetchType(typeName string) error {
 
 	switch t.Kind {
 	case models.ObjectTypeKind:
-		c.Types[typeName] = t
+		c.ObjectTypes[typeName] = t
 	case models.InputObjectTypeKind:
 		c.InputTypes[typeName] = t
 	case models.EnumTypeKind:
-		c.EnumTypes[typeName] = t.EnumValues
+		c.EnumTypes[typeName] = t
 	case models.UnionTypeKind:
 		c.Unions[t.Name] = t
 	}
@@ -272,6 +274,36 @@ func (c *Client) FetchSchema() error {
 	return nil
 }
 
+func (c *Client) NewFetchSchema() error {
+	q := fmt.Sprintf(schemaIntrospectionQuery, buildRecursiveOfTypeField(defaultTypeDepth))
+	req := request.BuildFromString(q, nil)
+	resp, err := c.Execute([]byte(req))
+	if err != nil {
+		return fmt.Errorf("error executing request: %v", err)
+	}
+
+	respType, err := utils.ParseResponse(resp)
+	if err != nil {
+		return err
+	}
+	dataMap := respType.Data["__schema"].(map[string]any)
+
+	sch := &models.Schema{}
+	err = utils.ParseMap(dataMap, sch)
+	if err != nil {
+		return fmt.Errorf("error parsing schema: %v", err)
+	}
+
+	for _, t := range sch.Types {
+		if !isCompleteType(&t) {
+			fmt.Println("Incomplete type: ", t.Name)
+		}
+		fmt.Println("Fetched type: ", t.Name)
+	}
+
+	return nil
+}
+
 // The queries have incomplete types consisting of only the name
 // Replace the types with their complete variants
 func (c *Client) populateTypesInQueries() {
@@ -296,7 +328,7 @@ func (c *Client) populateBaseType(t *models.Type) {
 	} else if baseType.Kind == models.InputObjectTypeKind {
 		*baseType = *c.GetInputType(baseType.Name)
 	} else if baseType.Kind == models.EnumTypeKind {
-		baseType.EnumValues = c.GetEnumValues(baseType.Name)
+		*baseType = *c.GetEnumType(baseType.Name)
 	} else if baseType.Kind == models.UnionTypeKind {
 		*baseType = *c.GetUnionType(baseType.Name)
 		for _, pt := range baseType.PossibleTypes {

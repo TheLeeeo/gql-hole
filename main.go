@@ -30,6 +30,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	testAllQueries(cl)
+}
+
+func testAllQueries(cl *client.Client) {
 	var allowedRequests []string
 	for _, q := range cl.Queries {
 		if q.Name == "_entities" {
@@ -86,37 +90,6 @@ func printTestResult(resp []byte, requestType request.RequestType, name string) 
 	}
 
 	return false
-}
-
-func testIntro(cl *client.Client) error {
-	q := utils.LoadQuery("introspection.gql")
-	req := request.BuildFromString(q, nil)
-	resp, err := cl.Execute([]byte(req))
-	if err != nil {
-		return fmt.Errorf("error executing request: %v", err)
-	}
-
-	respType, err := utils.ParseResponse(resp)
-	if err != nil {
-		return err
-	}
-	dataMap := respType.Data["__schema"].(map[string]any)
-
-	sch := &models.Schema{}
-	err = utils.ParseMap(dataMap, sch)
-	if err != nil {
-		return fmt.Errorf("error parsing schema: %v", err)
-	}
-
-	for _, t := range sch.Types {
-		if t.Name == "Query" || t.Name == "Mutation" {
-			continue
-		}
-
-		fmt.Println("Fetched type: ", t.Name)
-	}
-
-	return nil
 }
 
 func isFetchFailed(resp []byte) bool {
@@ -237,7 +210,7 @@ func GenerateMinimalTestDataForType(cl *client.Client, t *models.Type) map[strin
 		var value any
 		switch baseType.Kind {
 		case models.EnumTypeKind:
-			value = cl.EnumTypes[baseType.Name][0].Name
+			value = cl.EnumTypes[baseType.Name].EnumValues[0].Name
 		case models.ScalarTypeKind:
 			if baseType.Name == "Boolean" {
 				value = true
