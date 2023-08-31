@@ -1,52 +1,62 @@
 package client
 
-// For fetching a type
+// For fetching a single type
+// The first %s will be replaced with the typename and the second %s will be the recursiveOfTypeField
 const typeIntrospectionQuery = `
 query TypeQuery{
     __type(name: "%s"){
-		name
-		kind
-		fields {
-			name
-			type {
-				name
-				kind
-				%s
-			}
-			args {
-				name
-				type {
-					name
-					kind
-					%s
-				}
-			}
-		}
-        interfaces {
-            name
-            kind
-            %s
+		...FullType
+}
+
+fragment FullType on __Type {
+    kind
+    name
+    description
+    fields(includeDeprecated: true) {
+        name
+        description
+        args {
+            ...InputValue
         }
-        possibleTypes {
-            name
-            kind
-            %s
+        type {
+            ...TypeRef
         }
-		enumValues {
-			name
-		}
-		inputFields {
-			name
-			type {
-				name
-				kind
-				%s
-			}
-			defaultValue
-		}
+        isDeprecated
+        deprecationReason
+    }
+    inputFields {
+        ...InputValue
+    }
+    interfaces {
+        ...TypeRef
+    }
+    enumValues(includeDeprecated: true) {
+        name
+        description
+        isDeprecated
+        deprecationReason
+    }
+    possibleTypes {
+        ...TypeRef
     }
 }
+
+fragment InputValue on __InputValue {
+    name
+    description
+    type { ...TypeRef }
+    defaultValue 
+}
+
+fragment TypeRef on __Type {
+    kind
+    name
+    %s
+}
 `
+
+// For fetching the entire schema
+// The %s will be replaced with the recursiveOfTypeField
 const schemaIntrospectionQuery = `
 query IntrospectionQuery {
     __schema {    
@@ -111,18 +121,6 @@ fragment TypeRef on __Type {
     kind
     name
     %s
-}
-`
-
-// For fetching the names of all types so they can be fetched individually.
-// This is to avoid refethcing every type if one was incomplete
-const typeNamesIntrospectionQuery = `
-query{
-    __schema {
-		types {
-			name
-        }
-    }
 }
 `
 

@@ -192,7 +192,7 @@ func GenerateMinimalTestData(cl *client.Client, f *models.Field) map[string]any 
 			panic(fmt.Sprintf("Unhandled scalar type %s", baseType.Name))
 		}
 	case models.InputObjectTypeKind:
-		completeBaseType := cl.GetInputType(baseType.Name)
+		completeBaseType := cl.GetType(baseType.Name)
 		value = GenerateMinimalTestDataForType(cl, completeBaseType)
 	default:
 		panic(fmt.Sprintf("Unimplemented variable kind %s", f.Type.Kind))
@@ -216,7 +216,7 @@ func GenerateMinimalTestDataForType(cl *client.Client, t *models.Type) map[strin
 		var value any
 		switch baseType.Kind {
 		case models.EnumTypeKind:
-			value = cl.EnumTypes[baseType.Name].EnumValues[0].Name
+			value = cl.GetType(baseType.Name).EnumValues[0].Name
 		case models.ScalarTypeKind:
 			if baseType.Name == "Boolean" {
 				value = true
@@ -234,7 +234,7 @@ func GenerateMinimalTestDataForType(cl *client.Client, t *models.Type) map[strin
 				panic(fmt.Sprintf("Unhandled scalar type %s", baseType.Name))
 			}
 		case models.InputObjectTypeKind:
-			completeBaseType := cl.GetInputType(baseType.Name)
+			completeBaseType := cl.GetType(baseType.Name)
 			value = GenerateMinimalTestDataForType(cl, completeBaseType)
 		default:
 			panic(fmt.Sprintf("Unimplemented variable kind %s", f.Type.Kind))

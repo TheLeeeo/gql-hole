@@ -28,7 +28,7 @@ func (c *Client) CompileType(t *models.Type) []string {
 		case models.ScalarTypeKind:
 			fieldNames = append(fieldNames, f.Name)
 		case models.ObjectTypeKind:
-			fullBaseType := c.GetObjectType(baseType.Name)
+			fullBaseType := c.GetType(baseType.Name)
 
 			fieldNames = append(fieldNames, fmt.Sprintf("%s {", f.Name))
 			fieldNames = append(fieldNames, c.CompileType(fullBaseType)...)
@@ -53,7 +53,7 @@ func (c *Client) CompileField(f *models.Field) string {
 	if baseType.Kind == models.ScalarTypeKind {
 		queryBody = ""
 	} else if baseType.Kind == models.ObjectTypeKind {
-		completeBaseType := c.GetObjectType(baseType.Name)
+		completeBaseType := c.GetType(baseType.Name)
 		compiledTypeList := c.CompileType(completeBaseType)
 
 		var fields string
@@ -62,8 +62,6 @@ func (c *Client) CompileField(f *models.Field) string {
 		}
 
 		queryBody = fmt.Sprintf("{%s\n}", fields)
-	} else if baseType.Kind == models.UnionTypeKind {
-		// TODO?
 	} else {
 		panic(fmt.Sprintf("Unhandled type %s in field %s", baseType.Kind, f.Name))
 	}
