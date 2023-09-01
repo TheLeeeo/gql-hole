@@ -12,10 +12,11 @@ import (
 )
 
 type Crawler struct {
+	cfg *Config
+
 	// The introspection client
 	client *client.Client
 	// Queries and mutations to ignored
-	ignored []string
 }
 
 var defaultUnsupportedQueries = []string{
@@ -25,27 +26,45 @@ var defaultUnsupportedQueries = []string{
 
 // New creates a new crawler
 func New(cfg *Config) *Crawler {
-	clientConfig := &client.Config{
-		Addr:    cfg.Addr,
-		Headers: cfg.Headers,
-	}
+	cfg.Ignored = append(cfg.Ignored, defaultUnsupportedQueries...)
 
-	c := client.New(clientConfig)
-
-	cfg.Ignore = append(cfg.Ignore, defaultUnsupportedQueries...)
+	c := client.New(cfg.ClientConfig)
 
 	return &Crawler{
-		client:  c,
-		ignored: cfg.Ignore,
+		client: c,
+		cfg:    cfg,
 	}
 }
 
-func (c *Crawler) LoadSchema() error {
-	return c.client.LoadSchema()
+func (c *Crawler) IsReady() bool {
+	return c.client.HasSchema()
 }
 
-func (c *Crawler) Crawl() []*CrawlOperation {
-	return c.testAllOperations()
+func (c *Crawler) SetTargetURL(targetURL string) error {
+	return c.client.SetTargetURL(targetURL)
+}
+
+func (c *Crawler) SetIgnored(ignored []string) {
+	c.cfg.Ignored = ignored
+}
+
+func (c *Crawler) GetIgnored() []string {
+	return c.cfg.Ignored
+}
+
+func (c *Crawler) StartPolling() {
+	c.client.StartPolling()
+}
+
+func (c *Crawler) Crawl() ([]*CrawlOperation, error) {
+	if !c.IsReady() {
+		err := c.client.LoadSchema()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return c.testAllOperations(), nil
 }
 
 func (c *Crawler) Do(op *CrawlOperation) error {
@@ -109,7 +128,7 @@ func (c *Crawler) testAllOperations() []*CrawlOperation {
 	var allOperations []*CrawlOperation
 
 	for _, q := range c.client.Queries {
-		if slices.Contains(c.ignored, q.Name) {
+		if slices.Contains(c.cfg.Ignored, q.Name) {
 			continue
 		}
 
@@ -124,7 +143,7 @@ func (c *Crawler) testAllOperations() []*CrawlOperation {
 	}
 
 	for _, m := range c.client.Mutations {
-		if slices.Contains(c.ignored, m.Name) {
+		if slices.Contains(c.cfg.Ignored, m.Name) {
 			continue
 		}
 		vars := c.GenerateMinimalTestDataForRequest(m)

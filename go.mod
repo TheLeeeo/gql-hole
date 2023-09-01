@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/fatih/color v1.15.0
+	github.com/julienschmidt/httprouter v1.3.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63

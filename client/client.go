@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"time"
 
 	"github.com/TheLeeeo/gql-test-suite/models"
 	"github.com/TheLeeeo/gql-test-suite/request"
@@ -26,8 +28,9 @@ func buildRecursiveOfTypeField(depth int) string {
 }
 
 type Client struct {
-	Addr    string
-	Headers map[string]string
+	Cfg *Config
+
+	hasASchema bool
 
 	Types     map[string]*models.Type
 	Queries   []*models.Field
@@ -36,10 +39,56 @@ type Client struct {
 
 func New(cfg *Config) *Client {
 	return &Client{
-		Addr:    cfg.Addr,
-		Headers: cfg.Headers,
-		Types:   make(map[string]*models.Type),
+		Cfg:   cfg,
+		Types: make(map[string]*models.Type),
 	}
+}
+
+func (c *Client) HasSchema() bool {
+	return c.hasASchema
+}
+
+func (c *Client) SetTargetURL(targetURL string) error {
+	if targetURL == c.Cfg.TargetAddr {
+		return nil
+	}
+
+	_, err := url.Parse(targetURL)
+	if err != nil {
+		return fmt.Errorf("error parsing target addr: %v", err)
+	}
+
+	c.Cfg.TargetAddr = targetURL
+
+	//Load the new schema
+	err = c.LoadSchema()
+	if err != nil {
+		return fmt.Errorf("error loading schema: %v", err)
+	}
+
+	return nil
+}
+
+func (c *Client) SetHeaders(headers map[string]string) {
+	c.Cfg.Headers = headers
+}
+
+func (c *Client) StartPolling() {
+	if !c.Cfg.PollingConfig.Enabled {
+		return
+	}
+
+	go func() {
+		for {
+			log.Println("Polling for changes to the schema")
+			err := c.LoadSchema()
+			if err != nil {
+				log.Printf("error loading schema: %v", err)
+			}
+
+			time.Sleep(time.Duration(c.Cfg.PollingConfig.Interval) * time.Minute)
+		}
+	}()
 }
 
 func (c *Client) GetType(name string) *models.Type {
@@ -60,14 +109,14 @@ func (c *Client) GetType(name string) *models.Type {
 func (c *Client) Execute(request []byte) ([]byte, error) {
 	requestBody := bytes.NewBuffer(request)
 
-	req, err := http.NewRequest("POST", c.Addr, requestBody)
+	req, err := http.NewRequest("POST", c.Cfg.TargetAddr, requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %v", err)
 
 	}
 	req.Header.Add("Content-Type", "application/json")
 
-	for k, v := range c.Headers {
+	for k, v := range c.Cfg.Headers {
 		req.Header.Add(k, v)
 	}
 
@@ -163,6 +212,10 @@ func isCompleteField(f *models.Field) bool {
 }
 
 func (c *Client) LoadSchema() error {
+	if c.Cfg.TargetAddr == "" {
+		return ErrNoTargetAddr
+	}
+
 	q := fmt.Sprintf(schemaIntrospectionQuery, buildRecursiveOfTypeField(defaultTypeDepth))
 	req := request.BuildFromString(q, nil)
 	resp, err := c.Execute([]byte(req))
@@ -174,7 +227,10 @@ func (c *Client) LoadSchema() error {
 	if err != nil {
 		return err
 	}
-	dataMap := respType.Data["__schema"].(map[string]any)
+	dataMap, ok := respType.Data["__schema"].(map[string]any)
+	if !ok {
+		return fmt.Errorf("error parsing request, no valid __schema field found")
+	}
 
 	sch := &models.Schema{}
 	err = utils.ParseMap(dataMap, sch)
@@ -219,6 +275,7 @@ func (c *Client) LoadSchema() error {
 		log.Println("Schema contains subscriptions, these are not supported")
 	}
 
+	c.hasASchema = true
 	return nil
 }
 

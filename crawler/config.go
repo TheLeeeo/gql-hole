@@ -1,12 +1,10 @@
 package crawler
 
+import "github.com/TheLeeeo/gql-test-suite/client"
+
 type Config struct {
-	// The graphql endpoint to crawl
-	Addr string
+	ClientConfig *client.Config
 
-	// Headers to send with the request
-	Headers map[string]string
-
-	// Queries and mutations to ignore
-	Ignore []string
+	// Operations to ignore
+	Ignored []string
 }
