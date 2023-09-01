@@ -26,16 +26,19 @@ func buildRecursiveOfTypeField(depth int) string {
 }
 
 type Client struct {
-	Addr      string
+	Addr    string
+	Headers map[string]string
+
 	Types     map[string]*models.Type
 	Queries   []*models.Field
 	Mutations []*models.Field
 }
 
-func New(addr string) *Client {
+func New(cfg *Config) *Client {
 	return &Client{
-		Addr:  addr,
-		Types: make(map[string]*models.Type),
+		Addr:    cfg.Addr,
+		Headers: cfg.Headers,
+		Types:   make(map[string]*models.Type),
 	}
 }
 
@@ -63,7 +66,10 @@ func (c *Client) Execute(request []byte) ([]byte, error) {
 
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("token", "test")
+
+	for k, v := range c.Headers {
+		req.Header.Add(k, v)
+	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
