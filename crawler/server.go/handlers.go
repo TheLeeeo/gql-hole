@@ -27,7 +27,7 @@ func (s *Server) Crawl(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		return
 	}
 
-	failedOps := make([]*crawler.CrawlOperation, 0)
+	failedOps := make([]crawler.CrawlOperation, 0)
 	for _, op := range ops {
 		if op.Error != nil || !op.Denied {
 			failedOps = append(failedOps, op)
@@ -80,14 +80,20 @@ func (s *Server) SetTargetURL(w http.ResponseWriter, r *http.Request, _ httprout
 		return
 	}
 
-	err = s.crawler.SetTargetURL(newUrl)
-	if err != nil {
+	ok, err := s.crawler.SetTargetURL(newUrl)
+	if !ok || err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintln(w, "error setting target URL: ", err)
+
+		log.Println("error setting target URL: ", err)
 		return
 	}
 
 	log.Println("Updated target URL to: ", newUrl)
 
 	fmt.Fprint(w, newUrl)
+}
+
+func (s *Server) GetTargetURL(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	fmt.Fprint(w, s.crawler.GetTargetURL())
 }

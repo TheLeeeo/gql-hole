@@ -25,8 +25,8 @@ type CrawlOperation struct {
 	Error error `json:"error"`
 }
 
-func NewOperation(name, operation string, vars map[string]any) *CrawlOperation {
-	resp := &CrawlOperation{
+func NewOperation(name, operation string, vars map[string]any) CrawlOperation {
+	resp := CrawlOperation{
 		Name:      name,
 		Operation: operation,
 	}

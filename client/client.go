@@ -28,16 +28,16 @@ func buildRecursiveOfTypeField(depth int) string {
 }
 
 type Client struct {
-	Cfg *Config
+	Cfg Config
 
-	hasASchema bool
+	hasSchema bool
 
 	Types     map[string]*models.Type
-	Queries   []*models.Field
-	Mutations []*models.Field
+	Queries   []models.Field
+	Mutations []models.Field
 }
 
-func New(cfg *Config) *Client {
+func New(cfg Config) *Client {
 	return &Client{
 		Cfg:   cfg,
 		Types: make(map[string]*models.Type),
@@ -45,28 +45,32 @@ func New(cfg *Config) *Client {
 }
 
 func (c *Client) HasSchema() bool {
-	return c.hasASchema
+	return c.hasSchema
 }
 
-func (c *Client) SetTargetURL(targetURL string) error {
-	if targetURL == c.Cfg.TargetAddr {
-		return nil
+// Sets the target url of the client and tries to fetch a schema.
+// Returns true if the target url could be set
+// Can return both true and an error if the target url was set but the schema could not be fetched
+func (c *Client) SetTargetURL(targetURL string) (bool, error) {
+	if targetURL == c.Cfg.TargetUrl && c.hasSchema {
+		return true, nil
 	}
 
 	_, err := url.Parse(targetURL)
 	if err != nil {
-		return fmt.Errorf("error parsing target addr: %v", err)
+		return false, fmt.Errorf("error parsing target addr: %v", err)
 	}
 
-	c.Cfg.TargetAddr = targetURL
+	c.Cfg.TargetUrl = targetURL
+	c.hasSchema = false
 
 	//Load the new schema
 	err = c.LoadSchema()
 	if err != nil {
-		return fmt.Errorf("error loading schema: %v", err)
+		return true, fmt.Errorf("error loading schema: %v", err)
 	}
 
-	return nil
+	return true, nil
 }
 
 func (c *Client) SetHeaders(headers map[string]string) {
@@ -80,13 +84,18 @@ func (c *Client) StartPolling() {
 
 	go func() {
 		for {
+			time.Sleep(time.Duration(c.Cfg.PollingConfig.Interval) * time.Minute)
+
+			if c.Cfg.TargetUrl == "" {
+				log.Println("No target addr specified, skipping polling")
+				continue
+			}
+
 			log.Println("Polling for changes to the schema")
 			err := c.LoadSchema()
 			if err != nil {
 				log.Printf("error loading schema: %v", err)
 			}
-
-			time.Sleep(time.Duration(c.Cfg.PollingConfig.Interval) * time.Minute)
 		}
 	}()
 }
@@ -109,7 +118,7 @@ func (c *Client) GetType(name string) *models.Type {
 func (c *Client) Execute(request []byte) ([]byte, error) {
 	requestBody := bytes.NewBuffer(request)
 
-	req, err := http.NewRequest("POST", c.Cfg.TargetAddr, requestBody)
+	req, err := http.NewRequest("POST", c.Cfg.TargetUrl, requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %v", err)
 
@@ -212,7 +221,7 @@ func isCompleteField(f *models.Field) bool {
 }
 
 func (c *Client) LoadSchema() error {
-	if c.Cfg.TargetAddr == "" {
+	if c.Cfg.TargetUrl == "" {
 		return ErrNoTargetAddr
 	}
 
@@ -238,9 +247,11 @@ func (c *Client) LoadSchema() error {
 		return fmt.Errorf("error parsing schema: %v", err)
 	}
 
-	for _, t := range sch.Types {
-		if isCompleteType(t) {
-			c.Types[t.Name] = t
+	for i := 0; i < len(sch.Types); i++ {
+		t := sch.Types[i]
+
+		if isCompleteType(&t) {
+			c.Types[t.Name] = &t
 		} else {
 			t, err := c.FetchType(t.Name)
 			if err != nil {
@@ -256,7 +267,7 @@ func (c *Client) LoadSchema() error {
 	} else {
 		for _, f := range queries.Fields {
 			f := f
-			c.Queries = append(c.Queries, &f)
+			c.Queries = append(c.Queries, f)
 		}
 	}
 
@@ -266,7 +277,7 @@ func (c *Client) LoadSchema() error {
 	} else {
 		for _, f := range mutations.Fields {
 			f := f
-			c.Mutations = append(c.Mutations, &f)
+			c.Mutations = append(c.Mutations, f)
 		}
 	}
 
@@ -275,7 +286,7 @@ func (c *Client) LoadSchema() error {
 		log.Println("Schema contains subscriptions, these are not supported")
 	}
 
-	c.hasASchema = true
+	c.hasSchema = true
 	return nil
 }
 

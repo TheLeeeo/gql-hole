@@ -35,8 +35,9 @@ func init() {
 }
 
 var CrawlCmd = &cobra.Command{
-	Use:   "crawl",
-	Short: "For crawling a graphql endpoint",
+	Use:     "crawl",
+	Aliases: []string{"crawler"},
+	Short:   "For crawling a graphql endpoint",
 }
 
 var crawlRunCmd = &cobra.Command{
@@ -54,10 +55,10 @@ var crawlRunCmd = &cobra.Command{
 
 		headers := parseHeaders(headerSlice)
 
-		cfg := &crawler.Config{
-			ClientConfig: &client.Config{
-				TargetAddr: addr,
-				Headers:    headers,
+		cfg := crawler.Config{
+			ClientConfig: client.Config{
+				TargetUrl: addr,
+				Headers:   headers,
 			},
 			Ignored: ignore,
 		}

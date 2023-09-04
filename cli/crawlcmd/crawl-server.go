@@ -41,14 +41,14 @@ var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start the crawl server",
 	Run: func(cmd *cobra.Command, args []string) {
-		cfg := &crawlserver.Config{
+		cfg := crawlserver.Config{
 			HttpPort: viper.GetString(keyHttpPort),
 
-			CrawlerConfig: &crawler.Config{
-				ClientConfig: &client.Config{
-					TargetAddr: viper.GetString(keyTarget),
-					Headers:    parseHeaders(viper.GetStringSlice(keyHeaders)),
-					PollingConfig: &client.PollingConfig{
+			CrawlerConfig: crawler.Config{
+				ClientConfig: client.Config{
+					TargetUrl: viper.GetString(keyTarget),
+					Headers:   parseHeaders(viper.GetStringSlice(keyHeaders)),
+					PollingConfig: client.PollingConfig{
 						Enabled:  viper.GetBool(keyEnablePolling),
 						Interval: viper.GetInt(keyPollingInterval),
 					},
@@ -56,7 +56,7 @@ var startCmd = &cobra.Command{
 			},
 		}
 
-		err := validateConfig(cfg)
+		err := validateConfig(&cfg)
 		if err != nil {
 			fmt.Println("error validating config: ", err)
 			os.Exit(1)

@@ -11,10 +11,10 @@ import (
 type Server struct {
 	crawler *crawler.Crawler
 
-	cfg *Config
+	cfg Config
 }
 
-func New(cfg *Config) *Server {
+func New(cfg Config) *Server {
 	cr := crawler.New(cfg.CrawlerConfig)
 
 	return &Server{
@@ -24,7 +24,7 @@ func New(cfg *Config) *Server {
 }
 
 func (s *Server) Run() error {
-	router := SetupRouter(s)
+	router := s.SetupRouter()
 
 	s.crawler.StartPolling()
 
@@ -32,13 +32,14 @@ func (s *Server) Run() error {
 	return http.ListenAndServe(s.cfg.HttpPort, router)
 }
 
-func SetupRouter(s *Server) *httprouter.Router {
+func (s *Server) SetupRouter() *httprouter.Router {
 	router := httprouter.New()
 	router.POST("/crawl", s.Crawl)
 
 	router.GET("/ignored", s.GetIgnored)
 	router.POST("/ignored", s.SetIgnored)
 
+	router.GET("/target", s.GetTargetURL)
 	router.POST("/target", s.SetTargetURL)
 
 	router.PanicHandler = s.PanicHandler

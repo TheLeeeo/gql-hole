@@ -2,12 +2,12 @@ package client
 
 type Config struct {
 	// The graphql endpoint to crawl
-	TargetAddr string
+	TargetUrl string
 
 	// Headers to send with the request
 	Headers map[string]string
 
-	PollingConfig *PollingConfig
+	PollingConfig PollingConfig
 }
 
 type PollingConfig struct {

@@ -12,7 +12,7 @@ import (
 )
 
 type Crawler struct {
-	cfg *Config
+	cfg Config
 
 	// The introspection client
 	client *client.Client
@@ -25,7 +25,7 @@ var defaultUnsupportedQueries = []string{
 }
 
 // New creates a new crawler
-func New(cfg *Config) *Crawler {
+func New(cfg Config) *Crawler {
 	cfg.Ignored = append(cfg.Ignored, defaultUnsupportedQueries...)
 
 	c := client.New(cfg.ClientConfig)
@@ -40,12 +40,16 @@ func (c *Crawler) IsReady() bool {
 	return c.client.HasSchema()
 }
 
-func (c *Crawler) SetTargetURL(targetURL string) error {
+func (c *Crawler) SetTargetURL(targetURL string) (bool, error) {
 	return c.client.SetTargetURL(targetURL)
 }
 
+func (c *Crawler) GetTargetURL() string {
+	return c.client.Cfg.TargetUrl
+}
+
 func (c *Crawler) SetIgnored(ignored []string) {
-	c.cfg.Ignored = ignored
+	c.cfg.Ignored = append(ignored, defaultUnsupportedQueries...)
 }
 
 func (c *Crawler) GetIgnored() []string {
@@ -56,7 +60,7 @@ func (c *Crawler) StartPolling() {
 	c.client.StartPolling()
 }
 
-func (c *Crawler) Crawl() ([]*CrawlOperation, error) {
+func (c *Crawler) Crawl() ([]CrawlOperation, error) {
 	if !c.IsReady() {
 		err := c.client.LoadSchema()
 		if err != nil {
@@ -82,7 +86,7 @@ func (c *Crawler) TestQuery(queryName string) *CrawlOperation {
 	var query *models.Field
 	for _, q := range c.client.Queries {
 		if q.Name == queryName {
-			query = q
+			query = &q
 			break
 		}
 	}
@@ -96,16 +100,16 @@ func (c *Crawler) TestQuery(queryName string) *CrawlOperation {
 
 	operation := NewOperation(queryName, r, vars)
 
-	c.Do(operation)
+	c.Do(&operation)
 
-	return operation
+	return &operation
 }
 
 func (c *Crawler) TestMutation(mutationName string) *CrawlOperation {
 	var mutation *models.Field
 	for _, m := range c.client.Mutations {
 		if m.Name == mutationName {
-			mutation = m
+			mutation = &m
 			break
 		}
 	}
@@ -119,25 +123,25 @@ func (c *Crawler) TestMutation(mutationName string) *CrawlOperation {
 
 	operation := NewOperation(mutationName, r, vars)
 
-	c.Do(operation)
+	c.Do(&operation)
 
-	return operation
+	return &operation
 }
 
-func (c *Crawler) testAllOperations() []*CrawlOperation {
-	var allOperations []*CrawlOperation
+func (c *Crawler) testAllOperations() []CrawlOperation {
+	var allOperations []CrawlOperation
 
 	for _, q := range c.client.Queries {
 		if slices.Contains(c.cfg.Ignored, q.Name) {
 			continue
 		}
 
-		vars := c.GenerateMinimalTestDataForRequest(q)
-		r := c.client.Build(q, vars, request.Query)
+		vars := c.GenerateMinimalTestDataForRequest(&q)
+		r := c.client.Build(&q, vars, request.Query)
 
 		crawlResp := NewOperation(q.Name, r, vars)
 
-		c.Do(crawlResp)
+		c.Do(&crawlResp)
 
 		allOperations = append(allOperations, crawlResp)
 	}
@@ -146,12 +150,12 @@ func (c *Crawler) testAllOperations() []*CrawlOperation {
 		if slices.Contains(c.cfg.Ignored, m.Name) {
 			continue
 		}
-		vars := c.GenerateMinimalTestDataForRequest(m)
-		r := c.client.Build(m, vars, request.Mutation)
+		vars := c.GenerateMinimalTestDataForRequest(&m)
+		r := c.client.Build(&m, vars, request.Mutation)
 
 		crawlResp := NewOperation(m.Name, r, vars)
 
-		c.Do(crawlResp)
+		c.Do(&crawlResp)
 
 		allOperations = append(allOperations, crawlResp)
 	}
