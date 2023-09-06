@@ -32,6 +32,9 @@ func init() {
 
 	CrawlCmd.PersistentFlags().StringSliceP(keyHeaders, "H", []string{}, "Headers to send with the request, formatted like \"k1:v1,k2,v2\"")
 	viper.BindPFlag(keyHeaders, CrawlCmd.PersistentFlags().Lookup(keyHeaders))
+
+	CrawlCmd.PersistentFlags().BoolP(keyVerbose, "v", false, "Verbose output")
+	viper.BindPFlag(keyVerbose, CrawlCmd.PersistentFlags().Lookup(keyVerbose))
 }
 
 var CrawlCmd = &cobra.Command{

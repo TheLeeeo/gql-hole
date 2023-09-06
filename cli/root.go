@@ -1,20 +1,18 @@
 package cli
 
 import (
+	"strings"
+
 	crawlcli "github.com/TheLeeeo/gql-test-suite/cli/crawlcmd"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-const (
-	KeyVerbose = "verbose"
-)
-
 func init() {
 	RootCmd.AddCommand(crawlcli.CrawlCmd)
 
-	RootCmd.PersistentFlags().BoolP(KeyVerbose, "v", false, "Verbose output")
-	viper.BindPFlag(KeyVerbose, RootCmd.PersistentFlags().Lookup(KeyVerbose))
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 }
 
 var RootCmd = &cobra.Command{

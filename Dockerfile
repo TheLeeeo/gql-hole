@@ -12,7 +12,7 @@ RUN go mod download
 COPY . ./
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o gts .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o gts .
 
 # Use a smaller image to run our application
 FROM alpine:latest
