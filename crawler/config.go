@@ -6,5 +6,5 @@ type Config struct {
 	ClientConfig client.Config
 
 	// Operations to ignore
-	Ignored []string
+	Ignore []string
 }

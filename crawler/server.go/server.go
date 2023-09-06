@@ -36,8 +36,8 @@ func (s *Server) SetupRouter() *httprouter.Router {
 	router := httprouter.New()
 	router.POST("/crawl", s.Crawl)
 
-	router.GET("/ignored", s.GetIgnored)
-	router.POST("/ignored", s.SetIgnored)
+	router.GET("/ignore", s.GetIgnore)
+	router.POST("/ignore", s.SetIgnore)
 
 	router.GET("/target", s.GetTargetURL)
 	router.POST("/target", s.SetTargetURL)

@@ -63,7 +63,7 @@ var crawlRunCmd = &cobra.Command{
 				TargetUrl: addr,
 				Headers:   headers,
 			},
-			Ignored: ignore,
+			Ignore: ignore,
 		}
 
 		c := crawler.New(cfg)

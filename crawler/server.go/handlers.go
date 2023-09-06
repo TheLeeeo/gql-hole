@@ -45,8 +45,8 @@ func (s *Server) Crawl(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 	w.Write(b)
 }
 
-func (s *Server) GetIgnored(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	b, err := json.Marshal(s.crawler.GetIgnored())
+func (s *Server) GetIgnore(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	b, err := json.Marshal(s.crawler.GetIgnore())
 	if err != nil {
 		log.Println("error marshalling ignore list: ", err)
 
@@ -56,7 +56,7 @@ func (s *Server) GetIgnored(w http.ResponseWriter, r *http.Request, _ httprouter
 	w.Write(b)
 }
 
-func (s *Server) SetIgnored(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (s *Server) SetIgnore(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var ignore []string
 	err := json.NewDecoder(r.Body).Decode(&ignore)
 	if err != nil {
@@ -65,7 +65,7 @@ func (s *Server) SetIgnored(w http.ResponseWriter, r *http.Request, _ httprouter
 		return
 	}
 
-	s.crawler.SetIgnored(ignore)
+	s.crawler.SetIgnore(ignore)
 	log.Println("Updated ignore list to: ", ignore)
 
 	fmt.Fprint(w, ignore)

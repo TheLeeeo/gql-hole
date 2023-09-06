@@ -16,7 +16,7 @@ type Crawler struct {
 
 	// The introspection client
 	client *client.Client
-	// Queries and mutations to ignored
+	// Queries and mutations to ignore
 }
 
 var defaultUnsupportedQueries = []string{
@@ -26,7 +26,7 @@ var defaultUnsupportedQueries = []string{
 
 // New creates a new crawler
 func New(cfg Config) *Crawler {
-	cfg.Ignored = append(cfg.Ignored, defaultUnsupportedQueries...)
+	cfg.Ignore = append(cfg.Ignore, defaultUnsupportedQueries...)
 
 	c := client.New(cfg.ClientConfig)
 
@@ -48,12 +48,12 @@ func (c *Crawler) GetTargetURL() string {
 	return c.client.Cfg.TargetUrl
 }
 
-func (c *Crawler) SetIgnored(ignored []string) {
-	c.cfg.Ignored = append(ignored, defaultUnsupportedQueries...)
+func (c *Crawler) SetIgnore(ignore []string) {
+	c.cfg.Ignore = append(ignore, defaultUnsupportedQueries...)
 }
 
-func (c *Crawler) GetIgnored() []string {
-	return c.cfg.Ignored
+func (c *Crawler) GetIgnore() []string {
+	return c.cfg.Ignore
 }
 
 func (c *Crawler) StartPolling() {
@@ -132,7 +132,7 @@ func (c *Crawler) testAllOperations() []CrawlOperation {
 	var allOperations []CrawlOperation
 
 	for _, q := range c.client.Queries {
-		if slices.Contains(c.cfg.Ignored, q.Name) {
+		if slices.Contains(c.cfg.Ignore, q.Name) {
 			continue
 		}
 
@@ -147,7 +147,7 @@ func (c *Crawler) testAllOperations() []CrawlOperation {
 	}
 
 	for _, m := range c.client.Mutations {
-		if slices.Contains(c.cfg.Ignored, m.Name) {
+		if slices.Contains(c.cfg.Ignore, m.Name) {
 			continue
 		}
 		vars := c.GenerateMinimalTestDataForRequest(&m)

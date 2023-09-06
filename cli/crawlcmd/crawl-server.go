@@ -53,6 +53,7 @@ var startCmd = &cobra.Command{
 						Interval: viper.GetInt(keyPollingInterval),
 					},
 				},
+				Ignore: viper.GetStringSlice(keyIgnore),
 			},
 		}
 
