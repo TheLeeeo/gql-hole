@@ -261,6 +261,10 @@ func (c *Client) LoadSchema() error {
 		}
 	}
 
+	// Clear queries and mutations
+	c.Queries = make([]models.Field, 0)
+	c.Mutations = make([]models.Field, 0)
+
 	queries, ok := c.Types["Query"]
 	if !ok || len(queries.Fields) == 0 {
 		log.Println("Schema does not contain any queries")
