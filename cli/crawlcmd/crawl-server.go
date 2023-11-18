@@ -6,9 +6,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/TheLeeeo/gql-test-suite/client"
 	"github.com/TheLeeeo/gql-test-suite/crawler"
 	crawlserver "github.com/TheLeeeo/gql-test-suite/crawler/server.go"
+	"github.com/TheLeeeo/gql-test-suite/introspection"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -45,10 +45,10 @@ var startCmd = &cobra.Command{
 			HttpPort: viper.GetString(keyHttpPort),
 
 			CrawlerConfig: crawler.Config{
-				ClientConfig: client.Config{
+				ClientConfig: introspection.Config{
 					TargetUrl: viper.GetString(keyTarget),
 					Headers:   parseHeaders(viper.GetStringSlice(keyHeaders)),
-					PollingConfig: client.PollingConfig{
+					PollingConfig: introspection.PollingConfig{
 						Enabled:  viper.GetBool(keyEnablePolling),
 						Interval: viper.GetInt(keyPollingInterval),
 					},

@@ -1,14 +1,14 @@
-package client
+package manager
 
 import (
 	"fmt"
 
-	"github.com/TheLeeeo/gql-test-suite/models"
+	"github.com/TheLeeeo/gql-test-suite/schema"
 )
 
 // CompileFields builds a partial query for the fields of a type and returns the lines of the query
-func (c *Client) CompileType(t *models.Type) []string {
-	if t.Kind == models.ListTypeKind || t.Kind == models.NonNullTypeKind {
+func (m *Manager) CompileType(t schema.Type) []string {
+	if t.Kind == schema.ListTypeKind || t.Kind == schema.NonNullTypeKind {
 		return []string{} //Temporary behavior
 	}
 
@@ -16,22 +16,22 @@ func (c *Client) CompileType(t *models.Type) []string {
 
 	for _, f := range t.Fields {
 		// Field is optional
-		if f.Type.Kind != models.NonNullTypeKind {
+		if f.Type.Kind != schema.NonNullTypeKind {
 			continue
 		}
 
 		baseType := f.Type.GetBaseType()
 
 		switch baseType.Kind {
-		case models.EnumTypeKind:
+		case schema.EnumTypeKind:
 			fieldNames = append(fieldNames, f.Name)
-		case models.ScalarTypeKind:
+		case schema.ScalarTypeKind:
 			fieldNames = append(fieldNames, f.Name)
-		case models.ObjectTypeKind:
-			fullBaseType := c.GetType(baseType.Name)
+		case schema.ObjectTypeKind:
+			fullBaseType := m.Types[baseType.Name]
 
 			fieldNames = append(fieldNames, fmt.Sprintf("%s {", f.Name))
-			fieldNames = append(fieldNames, c.CompileType(fullBaseType)...)
+			fieldNames = append(fieldNames, m.CompileType(fullBaseType)...)
 			fieldNames = append(fieldNames, "}")
 		default:
 			fmt.Printf("Unhandled type %s in type %s\n", baseType.Kind, f.Name)
@@ -46,15 +46,15 @@ func (c *Client) CompileType(t *models.Type) []string {
 	return fieldNames
 }
 
-func (c *Client) CompileField(f *models.Field) string {
+func (m *Manager) CompileField(f schema.Field) string {
 	baseType := f.Type.GetBaseType()
 
 	var queryBody string
-	if baseType.Kind == models.ScalarTypeKind {
+	if baseType.Kind == schema.ScalarTypeKind {
 		queryBody = ""
-	} else if baseType.Kind == models.ObjectTypeKind {
-		completeBaseType := c.GetType(baseType.Name)
-		compiledTypeList := c.CompileType(completeBaseType)
+	} else if baseType.Kind == schema.ObjectTypeKind {
+		completeBaseType := m.Types[baseType.Name]
+		compiledTypeList := m.CompileType(completeBaseType)
 
 		var fields string
 		for _, l := range compiledTypeList {

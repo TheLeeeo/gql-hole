@@ -1,4 +1,4 @@
-package client
+package introspection
 
 // For fetching a single type
 // The first %s will be replaced with the typename and the second %s will be the recursiveOfTypeField

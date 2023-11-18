@@ -5,23 +5,12 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/TheLeeeo/gql-test-suite/models"
 )
 
 func PrettyRequest(req string) string {
 	s := req
 	s = strings.ReplaceAll(s, " ", "")
 	return s
-}
-
-func ParseResponse(resp []byte) (*models.Response, error) {
-	response := &models.Response{}
-	err := json.Unmarshal(resp, response)
-	if err != nil {
-		return nil, err
-	}
-	return response, nil
 }
 
 func ParseMap[T any](m map[string]any, v T) error {

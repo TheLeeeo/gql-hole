@@ -1,4 +1,4 @@
-package client
+package introspection
 
 import "errors"
 

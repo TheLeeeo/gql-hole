@@ -1,4 +1,4 @@
-package client
+package introspection
 
 type Config struct {
 	// The graphql endpoint to crawl

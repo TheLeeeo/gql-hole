@@ -6,15 +6,15 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/TheLeeeo/gql-test-suite/client"
 	"github.com/TheLeeeo/gql-test-suite/crawler"
+	"github.com/TheLeeeo/gql-test-suite/introspection"
 	"github.com/julienschmidt/httprouter"
 )
 
 func (s *Server) Crawl(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ops, err := s.crawler.Crawl()
 	if err != nil {
-		if err == client.ErrNoTargetAddr {
+		if err == introspection.ErrNoTargetAddr {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintln(w, "no target graphql endpoint specified")
 			return
@@ -73,19 +73,15 @@ func (s *Server) SetIgnore(w http.ResponseWriter, r *http.Request, _ httprouter.
 
 func (s *Server) SetTargetURL(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var newUrl string
-	err := json.NewDecoder(r.Body).Decode(&newUrl)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&newUrl); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintln(w, "error decoding target URL, please format as a string (\"value\")")
 		return
 	}
 
-	ok, err := s.crawler.SetTargetURL(newUrl)
-	if !ok || err != nil {
+	if err := s.crawler.SetTargetURL(newUrl); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintln(w, "error setting target URL: ", err)
-
-		log.Println("error setting target URL: ", err)
 		return
 	}
 

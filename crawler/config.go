@@ -1,9 +1,9 @@
 package crawler
 
-import "github.com/TheLeeeo/gql-test-suite/client"
+import "github.com/TheLeeeo/gql-test-suite/introspection"
 
 type Config struct {
-	ClientConfig client.Config
+	ClientConfig introspection.Config
 
 	// Operations to ignore
 	Ignore []string

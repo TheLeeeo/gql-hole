@@ -8,6 +8,7 @@ import (
 
 	"github.com/TheLeeeo/gql-test-suite/client"
 	"github.com/TheLeeeo/gql-test-suite/crawler"
+	"github.com/TheLeeeo/gql-test-suite/introspection"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -21,6 +22,7 @@ const (
 
 func init() {
 	CrawlCmd.AddCommand(crawlRunCmd)
+	CrawlCmd.AddCommand(crawlFileCmd)
 	CrawlCmd.AddCommand(serverCmd)
 
 	// add a flag for the graphql endpoint
@@ -59,7 +61,7 @@ var crawlRunCmd = &cobra.Command{
 		headers := parseHeaders(headerSlice)
 
 		cfg := crawler.Config{
-			ClientConfig: client.Config{
+			ClientConfig: introspection.Config{
 				TargetUrl: addr,
 				Headers:   headers,
 			},
@@ -87,6 +89,32 @@ var crawlRunCmd = &cobra.Command{
 
 			log.Println(string(b))
 		}
+	},
+}
+var crawlFileCmd = &cobra.Command{
+	Use:   "file",
+	Short: "Perform a crawl",
+	Run: func(cmd *cobra.Command, args []string) {
+		addr := viper.GetString(keyTarget)
+		if addr == "" {
+			log.Println("error: no graphql endpoint specified")
+			os.Exit(1)
+		}
+
+		client := client.New(addr)
+		res, err := client.ExecuteFile(args[0])
+		if err != nil {
+			log.Println("error executing file: ", err)
+			os.Exit(1)
+		}
+
+		b, err := json.MarshalIndent(res, "", "  ")
+		if err != nil {
+			log.Println("error marshalling result: ", err)
+			os.Exit(1)
+		}
+
+		log.Println(string(b))
 	},
 }
 

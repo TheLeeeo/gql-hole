@@ -1,4 +1,4 @@
-package models
+package schema
 
 type Directive struct {
 	Name         string              `json:"name"`
