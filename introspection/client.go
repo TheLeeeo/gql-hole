@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/TheLeeeo/gql-test-suite/client"
-	"github.com/TheLeeeo/gql-test-suite/client/request"
 	"github.com/TheLeeeo/gql-test-suite/schema"
 	"github.com/TheLeeeo/gql-test-suite/utils"
 )
@@ -99,7 +98,7 @@ func (c *Introspector) fetchTypeInternal(typeName string, typeDepth int) (*schem
 	ofTypeField := buildRecursiveOfTypeField(typeDepth)
 	reqString := fmt.Sprintf(typeIntrospectionQuery, typeName, ofTypeField)
 
-	req := request.New(reqString, nil)
+	req := client.NewRequest(reqString, nil)
 	req.Headers = c.Cfg.Headers
 
 	resp, err := c.gqlClient.Execute(req)
@@ -172,7 +171,7 @@ func (c *Introspector) FetchSchema() (*schema.Schema, error) {
 	}
 
 	q := fmt.Sprintf(schemaIntrospectionQuery, buildRecursiveOfTypeField(defaultTypeDepth))
-	req := request.New(q, nil)
+	req := client.NewRequest(q, nil)
 	req.Headers = c.Cfg.Headers
 
 	resp, err := c.gqlClient.Execute(req)

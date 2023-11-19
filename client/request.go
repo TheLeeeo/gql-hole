@@ -1,4 +1,4 @@
-package request
+package client
 
 import (
 	"encoding/json"
@@ -13,28 +13,15 @@ type Request struct {
 type RequestType string
 
 const (
-	Query    RequestType = "query"
-	Mutation RequestType = "mutation"
+	QueryRequest    RequestType = "query"
+	MutationRequest RequestType = "mutation"
 )
 
-func NewEmpty() *Request {
-	return &Request{}
-}
-
-func New(body string, variables map[string]any) *Request {
+func NewRequest(body string, variables map[string]any) *Request {
 	return &Request{
 		Body:      body,
 		Variables: variables,
 	}
-}
-
-func BuildFromString(requestString string, variables map[string]any) []byte {
-	query := &Request{
-		Body:      requestString,
-		Variables: variables,
-	}
-
-	return query.Build()
 }
 
 // Build compiles the request into a byte array that can be sent to the server.

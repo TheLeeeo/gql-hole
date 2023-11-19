@@ -7,8 +7,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/TheLeeeo/gql-test-suite/client/request"
-	"github.com/TheLeeeo/gql-test-suite/client/response"
 	"github.com/TheLeeeo/gql-test-suite/utils"
 )
 
@@ -22,7 +20,7 @@ func New(endpoint string) *Client {
 	}
 }
 
-func (c *Client) Execute(req *request.Request) (*response.Response, error) {
+func (c *Client) Execute(req *Request) (*Response, error) {
 	// Create the http request
 	requestBody := bytes.NewBuffer(req.Build())
 	httpRequest, err := http.NewRequest("POST", c.Endpoint, requestBody)
@@ -51,7 +49,7 @@ func (c *Client) Execute(req *request.Request) (*response.Response, error) {
 	}
 
 	// Try to parse the response into a gql response
-	resp, err := response.Parse(responseBody)
+	resp, err := Parse(responseBody)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing response: %v", err)
 	}
@@ -61,9 +59,9 @@ func (c *Client) Execute(req *request.Request) (*response.Response, error) {
 	return resp, nil
 }
 
-func (c *Client) ExecuteFile(filename string) (*response.Response, error) {
+func (c *Client) ExecuteFile(filename string) (*Response, error) {
 	q := utils.LoadQuery(filename)
-	req := request.New(q, map[string]any{"params": map[string]any{}})
+	req := NewRequest(q, map[string]any{"params": map[string]any{}})
 	resp, err := c.Execute(req)
 	fmt.Printf("%+v\n", req)
 	if err != nil {

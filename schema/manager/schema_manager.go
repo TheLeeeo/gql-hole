@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/TheLeeeo/gql-test-suite/client/request"
+	"github.com/TheLeeeo/gql-test-suite/client"
 	"github.com/TheLeeeo/gql-test-suite/schema"
 )
 
@@ -47,8 +47,8 @@ func New(s *schema.Schema) *Manager {
 	return m
 }
 
-func (c *Manager) Build(requestField schema.Field, t request.RequestType) string {
-	if t != request.Query && t != request.Mutation {
+func (c *Manager) Build(requestField schema.Field, t client.RequestType) string {
+	if t != client.QueryRequest && t != client.MutationRequest {
 		panic(fmt.Sprintf("invalid request type: %s", t))
 	}
 

@@ -3,11 +3,11 @@ package crawler
 import (
 	"strings"
 
-	"github.com/TheLeeeo/gql-test-suite/client/response"
+	"github.com/TheLeeeo/gql-test-suite/client"
 )
 
 func isFetchFailed(resp []byte) bool {
-	respType, err := response.Parse(resp)
+	respType, err := client.Parse(resp)
 	if err != nil {
 		panic(err)
 	}
@@ -26,7 +26,7 @@ func isFetchFailed(resp []byte) bool {
 }
 
 func is401Error(resp []byte) bool {
-	respType, err := response.Parse(resp)
+	respType, err := client.Parse(resp)
 	if err != nil {
 		panic(err)
 	}
@@ -45,7 +45,7 @@ func is401Error(resp []byte) bool {
 }
 
 func is403Error(resp []byte) bool {
-	respType, err := response.Parse(resp)
+	respType, err := client.Parse(resp)
 	if err != nil {
 		panic(err)
 	}

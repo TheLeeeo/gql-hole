@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/TheLeeeo/gql-test-suite/client"
-	"github.com/TheLeeeo/gql-test-suite/client/request"
 	"github.com/TheLeeeo/gql-test-suite/introspection"
 	"github.com/TheLeeeo/gql-test-suite/schema"
 	"github.com/TheLeeeo/gql-test-suite/schema/manager"
@@ -112,9 +111,9 @@ func (c *Crawler) TestQuery(queryName string) *CrawlOperation {
 	}
 
 	vars := c.GenerateMinimalTestDataForRequest(query)
-	r := c.schemaManager.Build(*query, request.Query)
+	r := c.schemaManager.Build(*query, client.QueryRequest)
 
-	request := request.New(r, vars)
+	request := client.NewRequest(r, vars)
 	operation := NewOperation(queryName, *request)
 
 	c.Do(&operation)
@@ -136,8 +135,8 @@ func (c *Crawler) TestMutation(mutationName string) *CrawlOperation {
 	}
 
 	vars := c.GenerateMinimalTestDataForRequest(mutation)
-	r := c.schemaManager.Build(*mutation, request.Mutation)
-	req := request.New(r, vars)
+	r := c.schemaManager.Build(*mutation, client.MutationRequest)
+	req := client.NewRequest(r, vars)
 
 	operation := NewOperation(mutationName, *req)
 
@@ -155,9 +154,9 @@ func (c *Crawler) testAllOperations() []CrawlOperation {
 		}
 
 		vars := c.GenerateMinimalTestDataForRequest(&q)
-		r := c.schemaManager.Build(q, request.Query)
+		r := c.schemaManager.Build(q, client.QueryRequest)
 
-		req := request.New(r, vars)
+		req := client.NewRequest(r, vars)
 		crawlResp := NewOperation(q.Name, *req)
 
 		fmt.Printf("%+v\n", req)
@@ -172,8 +171,8 @@ func (c *Crawler) testAllOperations() []CrawlOperation {
 			continue
 		}
 		vars := c.GenerateMinimalTestDataForRequest(&m)
-		r := c.schemaManager.Build(m, request.Mutation)
-		req := request.New(r, vars)
+		r := c.schemaManager.Build(m, client.MutationRequest)
+		req := client.NewRequest(r, vars)
 		crawlResp := NewOperation(m.Name, *req)
 
 		c.Do(&crawlResp)

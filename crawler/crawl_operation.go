@@ -3,7 +3,7 @@ package crawler
 import (
 	"log"
 
-	"github.com/TheLeeeo/gql-test-suite/client/request"
+	"github.com/TheLeeeo/gql-test-suite/client"
 	"github.com/fatih/color"
 )
 
@@ -11,7 +11,7 @@ type CrawlOperation struct {
 	// The name of the operation
 	Name string `json:"name"`
 	// Thes request made
-	Request request.Request `json:"request"`
+	Request client.Request `json:"request"`
 
 	// Was the operation considered denied
 	Denied bool `json:"success"`
@@ -25,7 +25,7 @@ type CrawlOperation struct {
 	Error error `json:"error"`
 }
 
-func NewOperation(name string, req request.Request) CrawlOperation {
+func NewOperation(name string, req client.Request) CrawlOperation {
 	resp := CrawlOperation{
 		Name:    name,
 		Request: req,
