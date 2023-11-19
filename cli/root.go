@@ -10,6 +10,7 @@ import (
 
 func init() {
 	RootCmd.AddCommand(crawlcli.CrawlCmd)
+	RootCmd.AddCommand(executeFileCmd)
 
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
