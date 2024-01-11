@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/TheLeeeo/gql-test-suite/client"
@@ -39,6 +40,21 @@ func is401Error(resp []byte) bool {
 		if strings.Contains(strings.ToLower(e.Message), "unauthenticated") {
 			return true
 		}
+
+		for _, ext := range e.Extensions {
+			extString, ok := ext.(string)
+			if !ok {
+				b, err := json.Marshal(ext)
+				if err != nil {
+					panic(err)
+				}
+				extString = string(b)
+			}
+
+			if strings.Contains(strings.ToLower(extString), "unauthenticated") {
+				return true
+			}
+		}
 	}
 
 	return false
@@ -55,8 +71,23 @@ func is403Error(resp []byte) bool {
 	}
 
 	for _, e := range respType.Errors {
-		if strings.Contains(e.Message, "PermissionDenied") {
+		if strings.Contains(strings.ToLower(e.Message), "permissiondenied") {
 			return true
+		}
+
+		for _, ext := range e.Extensions {
+			extString, ok := ext.(string)
+			if !ok {
+				b, err := json.Marshal(ext)
+				if err != nil {
+					panic(err)
+				}
+				extString = string(b)
+			}
+
+			if strings.Contains(strings.ToLower(extString), "unauthenticated") {
+				return true
+			}
 		}
 	}
 

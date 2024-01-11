@@ -1,7 +1,7 @@
 package crawler
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/TheLeeeo/gql-test-suite/client"
 	"github.com/fatih/color"
@@ -52,9 +52,9 @@ func (o *CrawlOperation) PrintResult() {
 		resultString = color.RedString("ALLOWED")
 	}
 
-	log.Printf("\"%s\": %s\n", o.Name, resultString)
+	fmt.Printf("\"%s\": %s\n", o.Name, resultString)
 	// Got allowed
 	if !o.Failed && !o.Denied {
-		log.Println("	Response: ", o.Response)
+		fmt.Println("	Response: ", o.Response)
 	}
 }

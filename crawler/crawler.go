@@ -65,7 +65,9 @@ func (c *Crawler) GetIgnore() []string {
 }
 
 func (c *Crawler) StartPolling() {
-	c.intrClient.StartPolling(nil)
+	c.intrClient.StartPolling(func(s *schema.Schema) {
+		c.schemaManager = manager.New(s)
+	})
 }
 
 func (c *Crawler) Crawl() ([]CrawlOperation, error) {
@@ -159,7 +161,7 @@ func (c *Crawler) testAllOperations() []CrawlOperation {
 		req := client.NewRequest(r, vars)
 		crawlResp := NewOperation(q.Name, *req)
 
-		fmt.Printf("%+v\n", req)
+		// fmt.Printf("%+v\n", req)
 
 		c.Do(&crawlResp)
 
